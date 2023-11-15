@@ -38,14 +38,11 @@ def get_parser():
     parser.add_argument( "-D","--doublePass", action='store_true', default=False, help="executs 2nd COBYLA pass")
             
     args = parser.parse_args()
-
     args.rnd_seed=42       # for reproducibility of data split
     args.cobyla_rhobeg=0.3 #  initial step size
     
-    for arg in vars(args):  print( 'myArg:',arg, getattr(args, arg))
-   
+    for arg in vars(args):  print( 'myArg:',arg, getattr(args, arg))   
     return args
-
 
 #...!...!....................
 def get_iris_data():
@@ -61,10 +58,9 @@ def get_iris_data():
     scaler = MinMaxScaler(feature_range=(-1, 1))
     X = scaler.fit_transform(X)
 
-    if 1:
-        print('Iris: 1-hoy encoded labels')
-        encoder = OneHotEncoder(sparse=False)
-        y = encoder.fit_transform(y.reshape(-1, 1))
+    print('Iris: 1-hoy encoded labels')
+    encoder = OneHotEncoder(sparse=False)
+    y = encoder.fit_transform(y.reshape(-1, 1))
     
     # Split into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=args.rnd_seed)
@@ -85,7 +81,6 @@ def myAnsatzQiskit(nFeat,nReps):
     ansatz_circ=EfficientSU2(num_qubits=nFeat, reps=nReps, entanglement='linear',skip_final_rotation_layer=True)
     return ansatz_circ
 
-
 #...!...!....................
 def build_circuit(X,nReps):
     from qiskit import QuantumCircuit
@@ -105,7 +100,6 @@ def build_circuit(X,nReps):
     featNL=get_par_names(qc1,'features')
     ansatzNL=get_par_names(qc2,'ansatz')
  
-    #circuit.measure(0,0)
     return circuit,featNL,ansatzNL
 
 #...!...!....................
@@ -147,15 +141,6 @@ def bind_weights(qcL,weightName,W):
         qcW[ic]= qc.assign_parameters(xD)
     return qcW
    
-        
-# Function to extract a parameter by name
-def get_parameter_by_name(circuit, name):
-    for param in circuit.parameters:
-        if param.name == name:
-            return param
-    return None
-
-
 #...!...!....................
 def HW_2_label(counts,mxLabel):
     hwV=np.zeros(mxLabel)
@@ -188,18 +173,15 @@ def init_weights(weightN):
     return weights
 
 #...!...!....................
-# Loss function for optimization
 def loss_function(weights, X, Y):
     Y_pred_dens = M_forward_pass(X, weights)
     loss = cross_entropy_loss(Y_pred_dens, Y)
-    #print('LF:',loss,Y)
     loss_history.append(loss)
     iIter=len(loss_history)
     if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,loss))
     return loss
 
 #...!...!....................
-# Forward pass
 def M_forward_pass(X, W):
     qcF=bind_features(qcT,featN,X)
     qcW=bind_weights(qcF,weightN,W)    
@@ -208,8 +190,7 @@ def M_forward_pass(X, W):
     # - - - -  FIRE JOB - - - - - - -
     job =  backend.run(qcW,shots=args.numShots)
     jid=job.job_id()
-    #print('submitted JID=',jid,backend ,nCirc,' circuits ...')
-    
+    #print('submitted JID=',jid,backend ,nCirc,' circuits ...')    
     result = job.result()    
 
     # compute density of labels for each circuit
@@ -236,7 +217,6 @@ def M_evaluate(txt=''):
     for j, loss in enumerate(loss_history):
         if j%10==0 or j==args.maxIter-1:
             print(f"Iteration {j + 1}: Loss = {loss:.3f}")
-
 
     # Extract the optimized weights
     weightsOpt = result.x
