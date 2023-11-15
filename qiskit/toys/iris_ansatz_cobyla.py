@@ -16,8 +16,6 @@ true:0  reco:[7 1 2]
 true:1  reco:[0 8 1]
 true:2  reco:[1 6 4]
 
-
-
 '''
 
 import numpy as np
@@ -194,6 +192,17 @@ def init_weights(weightN):
     return weights
 
 #...!...!....................
+# Loss function for optimization
+def loss_function(weights, X, Y):
+    Y_pred_dens = M_forward_pass(X, weights)
+    loss = cross_entropy_loss(Y_pred_dens, Y)
+    #print('LF:',loss,Y)
+    loss_history.append(loss)
+    iIter=len(loss_history)
+    if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,loss))
+    return loss
+
+#...!...!....................
 # Forward pass
 def M_forward_pass(X, W):
     qcF=bind_features(qcT,featN,X)
@@ -201,7 +210,7 @@ def M_forward_pass(X, W):
     nCirc=len(qcW)
     
     # - - - -  FIRE JOB - - - - - - -
-    job =  backend.run(qcW,shots=shots)
+    job =  backend.run(qcW,shots=args.numShots)
     jid=job.job_id()
     #print('submitted JID=',jid,backend ,nCirc,' circuits ...')
     
@@ -279,20 +288,7 @@ if __name__ == "__main__":
     qcT = qk.transpile(qc, backend=backend)
     print('M: transpiled');# print(qcT)
 
-    shots=args.numShots
-
     weightsIni=init_weights(weightN)
-   
-    # Loss function for optimization
-    def loss_function(weights, X, Y):
-        Y_pred_dens = M_forward_pass(X, weights)
-        loss = cross_entropy_loss(Y_pred_dens, Y)
-        #print('LF:',loss,Y)
-        loss_history.append(loss)
-        iIter=len(loss_history)
-        if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,loss))
-        return loss
-
     #1loss_function(weights0, X_train, y_train)
 
     # Loss history

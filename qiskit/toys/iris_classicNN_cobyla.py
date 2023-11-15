@@ -52,7 +52,7 @@ from sklearn.preprocessing import StandardScaler
 
 # Neural network parameters
 input_size = 4
-hidden_size = 2
+hidden_size = 1
 output_size = 3  # number of categories
 mxIter=800  # for COBYLA
 rnd_seed=42 # for reproducibility of data split
