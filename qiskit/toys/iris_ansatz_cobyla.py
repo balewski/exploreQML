@@ -205,7 +205,6 @@ def M_forward_pass(X, W):
 #...!...!....................
 # Cross-entropy loss function
 def cross_entropy_loss(Y_pred, Y_true):
-    #print('CEL',Y_pred.shape, Y_true.shape)
     m = Y_true.shape[0]
     loss = -np.sum(Y_true * np.log(Y_pred + 1e-9)) / m  # Adding a small value to prevent log(0)
     return loss
