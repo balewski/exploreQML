@@ -31,16 +31,12 @@ import argparse
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v","--verbosity",type=int,choices=[0, 1, 2,3],
-                        help="increase output verbosity", default=1, dest='verb')
-    
-    parser.add_argument('-b','--backName',default='ibmq_kolkata',help="backand for computations, should support dynamic circuits" )
-    
+                        help="increase output verbosity", default=1, dest='verb')        
     parser.add_argument('--ansatzReps',type=int,default=2, help="cycles in ansatz")
     parser.add_argument('-i','--maxIter',type=int,default=300, help="max COBYLA iterations")
     parser.add_argument('-n','--numShots',type=int,default=2000, help="shots")
     parser.add_argument( "-D","--doublePass", action='store_true', default=False, help="executs 2nd COBYLA pass")
-    
-        
+            
     args = parser.parse_args()
 
     args.rnd_seed=42       # for reproducibility of data split
