@@ -1,0 +1,47 @@
+#!/bin/bash
+#  salloc -q interactive -C cpu -t 4:00:00 -A nstaff 
+
+# first load my Quantinuum credentials is to initialise a MemoryCredentialStorage with username and password both set
+
+#echo load my QuEra-AWS creds
+#source /Users/balewski/.ssh/quera_aws.credentials
+#env |grep QUERA_AWS  # activate to see the creds
+
+
+IMG=balewski/ubu22-qiskit-qml:p1
+CFSH=/global/cfs/cdirs/mpccc/balewski/
+
+echo launch image $IMG
+echo you are launching Podman image ...  remeber to exit
+
+JNB_PORT=' '
+REPO_PATH=$CFSH/exploreQML
+WORK_DIR=$REPO_PATH/qiskit
+
+DATA_DIR=$CFSH/2023-quantDataVault
+
+echo "The number of arguments is: $#"
+#  encoded variables:    jnb
+for var in "$@"; do
+  echo "The length of argument '$var' is: ${#var}"
+  if [[ "jnb" ==  $var ]];  then
+      #JNB_PORT="    --publish 8833:8833 "
+      JNB_PORT="    -p 8833:8833 "
+     echo added  $JNB_PORT
+     echo "  cd notebooks;  jupyter notebook --ip 0.0.0.0 --no-browser --allow-root --port  8833 "
+  fi
+  # ... more ...
+done
+
+
+podman-hpc run -it \
+	   --volume $HOME:/home \
+	   --volume $WORK_DIR:/wrk \
+	   --volume $DATA_DIR:/data \
+	   --workdir /wrk \
+	   $IMG /bin/bash
+
+
+# test JNB
+# cd    /qtuum_wrk/hqs-api-examples/notebooks
+# jupyter notebook --ip 0.0.0.0 --no-browser --allow-root --port 8844
