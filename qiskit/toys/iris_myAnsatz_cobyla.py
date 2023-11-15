@@ -160,29 +160,6 @@ def myAnsatzJan(nFeat,nReps):
     return ansatz_circ
 
 #...!...!....................
-def build_circuit(X,nReps):
-    from qiskit import QuantumCircuit
-    nFeat=X.shape[1]
-    qc1=encode_features(X)
-    print('\nFeatures'); print(qc1.decompose())
-    #1qc2=myAnsatzQiskit(nFeat,nReps)
-    qc2=myAnsatzJan(nFeat,nReps)
-    print('\nAnsatz'); print(qc2.decompose())
-
-    nBits=num_label
-    print('nBits=',nBits)
-    circuit = QuantumCircuit(nFeat,nBits)
-    circuit.append(qc1, range(nFeat))
-    circuit.append(qc2, range(nFeat),range(nBits))
-    circuit.measure(range(nBits),range(nBits))
-    
-    featNL=get_par_names(qc1,'features')
-    ansatzNL=get_par_names(qc2,'ansatz')
- 
-    #circuit.measure(0,0)
-    return circuit,featNL,ansatzNL
-
-#...!...!....................
 def get_par_names(qc,txt=''):
     parNL= [param.name for param in qc.parameters]
     print(txt+' %d parNL:'%len(parNL),parNL)
@@ -256,6 +233,24 @@ def M_test_full_bind_and_run():
     exit(0)
 
 #...!...!....................
+def init_weights(weightN):
+    nW=len(weightN)
+    weights=np.random.rand(nW)*0.5  
+    #weights=np.zeros(nW)
+    return weights
+
+#...!...!....................
+# Loss function for optimization
+def M_loss_function(weights, X, Y):
+    Y_pred_dens = M_forward_pass(X, weights)
+    loss = cross_entropy_loss(Y_pred_dens, Y)
+    #print('LF:',loss,Y)
+    loss_history.append(loss)
+    iIter=len(loss_history)
+    if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,loss))
+    return loss
+
+#...!...!....................
 def HW_2_label(counts,mxLabel):
     hwV=np.zeros(mxLabel)
     totShots=0
@@ -280,24 +275,6 @@ def oneHot_2_label(counts,mxLabel):
     totSum=np.sum(hwV)
     #print('1hotV:',hwV,'totShots:',totShots,totSum)    
     return hwV/totShots
-
-#...!...!....................
-def init_weights(weightN):
-    nW=len(weightN)
-    weights=np.random.rand(nW)*0.5  
-    #weights=np.zeros(nW)
-    return weights
-
-#...!...!....................
-# Loss function for optimization
-def loss_function(weights, X, Y):
-    Y_pred_dens = M_forward_pass(X, weights)
-    loss = cross_entropy_loss(Y_pred_dens, Y)
-    #print('LF:',loss,Y)
-    loss_history.append(loss)
-    iIter=len(loss_history)
-    if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,loss))
-    return loss
 
 #...!...!....................
 # Forward pass
@@ -364,6 +341,29 @@ def M_evaluate(txt=''):
 
     return weightsOpt
 
+#...!...!....................
+def build_circuit(X,nReps):
+    from qiskit import QuantumCircuit
+    nFeat=X.shape[1]
+    qc1=encode_features(X)
+    print('\nFeatures'); print(qc1.decompose())
+    #1qc2=myAnsatzQiskit(nFeat,nReps)
+    qc2=myAnsatzJan(nFeat,nReps)
+    print('\nAnsatz'); print(qc2.decompose())
+
+    nBits=num_label
+    print('nBits=',nBits)
+    circuit = QuantumCircuit(nFeat,nBits)
+    circuit.append(qc1, range(nFeat))
+    circuit.append(qc2, range(nFeat),range(nBits))
+    circuit.measure(range(nBits),range(nBits))
+    
+    featNL=get_par_names(qc1,'features')
+    ansatzNL=get_par_names(qc2,'ansatz')
+ 
+    #circuit.measure(0,0)
+    return circuit,featNL,ansatzNL
+
 #=================================
 #=================================
 #  M A I N
@@ -400,7 +400,7 @@ if __name__ == "__main__":
     loss_history = []
 
     # Use COBYLA optimizer with set maximum of iterations
-    result = minimize(fun=loss_function, 
+    result = minimize(fun=M_loss_function, 
                       x0=weightsIni, 
                       args=(X_train, y_train), 
                       method='COBYLA',                          
