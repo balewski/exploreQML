@@ -251,12 +251,11 @@ def build_circuit(X,nReps):
 #=================================
 if __name__ == "__main__":
     args=get_parser()
-    nReps=args.ansatzReps
-    
+     
     X_train, X_test, y_train, y_test,num_label =get_iris_data()
     num_feture=X_train.shape[1]    
-    
-    qc,featN,weightN=build_circuit(X_train,nReps)
+
+    qc,featN,weightN=build_circuit(X_train,args.ansatzReps)
     num_weight=len(weightN)
     print('M: full compact, num_weight=%d'%num_weight); print(qc)
     

@@ -139,14 +139,14 @@ def get_iris_data():
     return X_train, X_test, y_train, y_test ,num_label
 
 #...!...!....................
-def encode_features(X):
+def featureMapQiskit(X):
     from qiskit.circuit.library import ZZFeatureMap
     num_features = X.shape[1]
     feature_circ = ZZFeatureMap(feature_dimension=num_features, reps=1)
     return feature_circ
 
 #...!...!....................
-def myAnsatzQiskit(nFeat,nReps):
+def ansatzQiskit(nFeat,nReps):
     from qiskit.circuit.library import EfficientSU2,TwoLocal
     ansatz_circ=EfficientSU2(num_qubits=nFeat, reps=nReps, entanglement='linear',skip_final_rotation_layer=True)
     return ansatz_circ
@@ -345,7 +345,7 @@ def M_evaluate(txt=''):
 def build_circuit(X,nReps):
     from qiskit import QuantumCircuit
     nFeat=X.shape[1]
-    qc1=encode_features(X)
+    qc1=featureMapQiskit(X)
     print('\nFeatures'); print(qc1.decompose())
     #1qc2=myAnsatzQiskit(nFeat,nReps)
     qc2=myAnsatzJan(nFeat,nReps)
@@ -431,7 +431,7 @@ if __name__ == "__main__":
     loss_history = []
 
     # Use COBYLA optimizer with set maximum of iterations
-    result = minimize(fun=loss_function, 
+    result = minimize(fun=M_loss_function, 
                       x0=weightsOpt, 
                       args=(X_train, y_train), 
                       method='COBYLA',                          
