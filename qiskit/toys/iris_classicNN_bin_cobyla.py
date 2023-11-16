@@ -151,3 +151,71 @@ conf_matrix = confusion_matrix(y_test_labels,Y_pred_test_labels)
 print('\nconfusion matrix, test samples:%d'%(X_test.shape[0]))
 for i,rec  in enumerate(conf_matrix):
     print('true:%d  reco:%s'%(i,rec))
+
+
+
+'''
+Jan: 
+I'm very happy with your work. Now assume the input data set has K=9 labels. 
+Keep the whole logic as-is., continue to use binary encoding.
+Rewrite the code so it works for arbitrary K.
+
+ChatGPT:
+
+Those are the changes (not tested by human)
+
+def generate_binary_encodings(num_classes):
+    return np.array([list(np.binary_repr(i, width=int(np.ceil(np.log2(num_classes))))) for i in range(num_classes)], dtype=int)
+
+def binary_encode_labels(labels, binary_encodings):
+    return binary_encodings[labels]
+
+# Example with K = 9 (or replace with any K)
+K = 9
+binary_encodings = generate_binary_encodings(K)
+
+# Create a synthetic dataset with K classes (replace with your dataset)
+X, y = make_classification(n_samples=1000, n_features=4, n_classes=K, n_clusters_per_class=1, random_state=42)
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+y_binary_encoded = binary_encode_labels(y, binary_encodings)
+
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_binary_encoded, test_size=0.2, random_state=42)
+
+# Neural network parameters
+input_size = 4  # Depends on your dataset
+hidden_size = 10  # Adjustable
+output_size = binary_encodings.shape[1]  # Number of bits in binary encoding
+
+# Activation functions and forward pass (same as before)
+
+# Binary cross-entropy loss function (same as before)
+
+# Initialize weights and biases (same as before)
+
+# Flatten weights and biases for optimization (same as before)
+
+# Define the end indices for each set of parameters (same as before)
+
+# Loss function including biases (same as before)
+
+# Use COBYLA optimizer (same as before)
+
+# Extract optimized weights and biases (same as before)
+
+# Test the model (same as before)
+
+# Convert binary predictions back to class labels
+def binary_to_label(binary_array, binary_encodings):
+    binary_list = binary_array.tolist()
+    return np.array([binary_encodings.tolist().index(b) for b in binary_list])
+
+# Calculate accuracy
+Y_pred_test_binary = (Y_pred_test > 0.5).astype(int)
+Y_pred_test_labels = binary_to_label(Y_pred_test_binary, binary_encodings)
+y_test_labels = binary_to_label(y_test, binary_encodings)
+accuracy = np.mean(Y_pred_test_labels == y_test_labels)
+print(f"Accuracy: {accuracy * 100:.2f}%")
+'''
