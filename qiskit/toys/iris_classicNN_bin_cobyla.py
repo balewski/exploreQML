@@ -39,7 +39,7 @@ from sklearn.model_selection import train_test_split
 input_size = 4
 hidden_size = 5
 output_size = 2  # Two output neurons for binary encodin
-mxIter=1500 # for COBYLA
+mxIter=150 # for COBYLA
 rnd_seed=42 # for reproducibility of data split
 
 # Function to encode labels as 2-bit binary
@@ -80,6 +80,8 @@ def forward_pass(X, params):
 
 # Binary cross-entropy loss function
 def binary_cross_entropy_loss(Y_pred, Y_true):
+    #print('BCEL:',Y_pred.shape, Y_true.shape)
+    #print('few vals Y_pred:',Y_pred[:5],'\nYtrue:',Y_true[:5]); aaa
     return -np.mean(Y_true * np.log(Y_pred + 1e-9) + (1 - Y_true) * np.log(1 - Y_pred + 1e-9))
 
 # Initialize weights and biases
@@ -98,8 +100,7 @@ end_b1 = end_W1 + hidden_size
 end_W2 = end_b1 + hidden_size * output_size
 
 # Loss function including biases
-def loss_function(params, X, Y):
- 
+def loss_function(params, X, Y): 
     Y_pred = forward_pass(X, params)
     loss=binary_cross_entropy_loss(Y_pred, Y)
     loss_history.append(loss)
@@ -152,6 +153,7 @@ print('\nconfusion matrix, test samples:%d'%(X_test.shape[0]))
 for i,rec  in enumerate(conf_matrix):
     print('true:%d  reco:%s'%(i,rec))
 
+print('\nfew vals Y_pred:',Y_pred_test[:5],'\nYtrue:',y_test[:5]); aaa
 
 
 '''
