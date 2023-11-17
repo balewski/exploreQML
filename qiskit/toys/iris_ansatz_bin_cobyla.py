@@ -27,6 +27,8 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Parameter,ParameterVector
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import confusion_matrix
     
 import qiskit as qk
 from pprint import pprint
@@ -61,7 +63,6 @@ def M_binary_encode_labels(labels):
     
     # Set the corresponding indices  value to 1    
     np.put_along_axis(lab_bin, labels[:, None], 1, axis=1)
-    #print(labels[:10],lab_bin[:10])
     return lab_bin
 
 #...!...!....................
@@ -73,7 +74,6 @@ def get_iris_data():
     num_label=3  # for Iris data
     
     # Preprocess the data
-    from sklearn.preprocessing import MinMaxScaler
     # Normalize data
     scaler = MinMaxScaler(feature_range=args.input_scale)
     X = scaler.fit_transform(X)
@@ -116,7 +116,7 @@ def entangling_block(qc,cxDir=0,doCircle=False):
 
 #...!...!....................
 def myAnsatz(nFeat,nReps, barrier=True, final_rotation=True):
-    qc = QuantumCircuit(nFeat,name='ansatz_x%d'%nReps)
+    qc = QuantumCircuit(nFeat,name='ansatz_r%d'%nReps)
     for ir in range(nReps):
         rotation_block(qc,ir, addRz=False)
         if barrier: qc.barrier()
@@ -207,7 +207,6 @@ def M_forward_pass(X, W):
     #print('submitted JID=',jid,backend ,nCirc,' circuits ...')    
     result = job.result()    
     weightCurrent=W.copy()
-    #print('aa2',type(weightCurrent))
     
     # compute density of labels for each circuit
     labDens=[ None for ic in range(nCirc)]
@@ -220,12 +219,10 @@ def M_forward_pass(X, W):
 
 #...!...!....................
 # Binary cross-entropy loss function
-def binary_cross_entropy_loss(Y_pred, Y_true):
-    
+def binary_cross_entropy_loss(Y_pred, Y_true):    
     #print('BCEL:',Y_pred.shape, Y_true.shape)
-    #print('few vals Y_pred:',Y_pred[:5],'\nYtrue:',Y_true[:15]); #aaa
-    # Adding a small value to prevent log(0)
-    
+
+    # Adding a small value to prevent log(0)    
     loss= -np.mean(Y_true * np.log(Y_pred + 1e-9) + (1 - Y_true) * np.log(1 - Y_pred + 1e-9))
     return loss
 
@@ -255,7 +252,6 @@ def M_evaluate( weightsOpt,txt=''):
     print("%s test accuracy: %.1f%c"%( txt,accuracy *100,37 ))
 
     # Compute the confusion matrix
-    from sklearn.metrics import confusion_matrix
     conf_matrix = confusion_matrix(y_test,y_pred_test)
     print('confusion matrix, test samples: %d'%(X_test.shape[0]))
     for i,rec  in enumerate(conf_matrix):
@@ -278,7 +274,7 @@ def build_circuit(X,nReps):
     circuit = QuantumCircuit(nFeat,nBits)
     circuit.append(qc1, range(nFeat))
     circuit.append(qc2, range(nFeat))
-    moff=1
+    moff=2
     circuit.measure(range(moff,moff+nBits),range(nBits))
     
     featNL=get_par_names(qc1,'features')
@@ -302,7 +298,6 @@ class trainMemory():
             self.bestLoss=val
             self.bestIter=iIter
             self.bestW=weightCurrent
-            #print('aa',type(weightCurrent)); mm
         if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,val))
 
         
