@@ -3,19 +3,20 @@ __author__ = "Jan Balewski"
 __email__ = "janstar1122@gmail.com"
 
 '''
-use Qiskit Ansatz, use binary encoding
-use angle 
+uses binary labels  encoding
+uses angle feature encoding 
 
 Example output  (has signifficant variability)
 
-Iteration 181: Loss = 0.842
-num weights= (16,) weights/rad  in [-1.64,1.29],  avr=0.32 
+Pass1-best ends, 100 iterations, end-loss=-0.291
+num weights= (16,) weights/rad  in [-1.18,1.06],  avr=-0.04 
+Pass1-best test accuracy: 94.4%
+confusion matrix, test samples: 90
+true:0  reco:[34  0  0  1]
+true:1  reco:[ 0 26  3  0]
+true:2  reco:[ 0  1 25  0]
+true:3  reco:[0 0 0 0]
 
-Pass1 test accuracy: 63.3%
-confusion matrix, test samples: 30
-true:0  reco:[7 1 2]
-true:1  reco:[0 8 1]
-true:2  reco:[1 6 4]
 
 '''
 
