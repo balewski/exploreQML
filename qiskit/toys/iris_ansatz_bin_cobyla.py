@@ -3,35 +3,36 @@ __author__ = "Jan Balewski"
 __email__ = "janstar1122@gmail.com"
 
 '''
-uses binary labels  encoding
-uses angle feature encoding 
+QML: 3-way classfier of Iris dataset
+uses angle feature encoding (input)
+uses binary labels  encoding (output)
+Setup: classical minimizer + quantum-only ML layers
+Quantum resources: 4 qubits connected linearily 
 
-Example output  (has signifficant variability)
+Example output  (has signifficant variability):
 
-Pass1-best ends, 100 iterations, end-loss=-0.291
-num weights= (16,) weights/rad  in [-1.18,1.06],  avr=-0.04 
-Pass1-best test accuracy: 94.4%
+Pass1-best ends, 100 iterations, end-loss=-0.343
+   bestIter=50, best loss=-0.375
+num weights= (16,) weights/rad  in [-0.72,1.77],  avr=0.32 
+Pass1-best test accuracy: 85.6%
 confusion matrix, test samples: 90
-true:0  reco:[34  0  0  1]
-true:1  reco:[ 0 26  3  0]
-true:2  reco:[ 0  1 25  0]
-true:3  reco:[0 0 0 0]
-
-
+true:0  reco: [28  2  0  5]
+true:1  reco: [ 0 23  6  0]
+true:2  reco: [ 0  0 26  0]
+true:3  reco: [ 0  0  0  0]
 '''
 
+from pprint import pprint
 import numpy as np
 from scipy.optimize import minimize
+
 from sklearn import datasets
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Parameter,ParameterVector
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import confusion_matrix
     
 import qiskit as qk
-from pprint import pprint
+from qiskit.circuit import Parameter,ParameterVector
 
 import argparse
 def get_parser():
@@ -41,27 +42,27 @@ def get_parser():
     parser.add_argument('--ansatzReps',type=int,default=3, help="cycles in ansatz")
     parser.add_argument('-i','--maxIter',type=int,default=100, help="max COBYLA iterations")
     parser.add_argument('-n','--numShots',type=int,default=2000, help="shots")
+    parser.add_argument('-r','--rndSeed',type=int,default=42, help="seed for reproducibility of data split")
     parser.add_argument( "-D","--doublePass", action='store_true', default=False, help="executs 2nd COBYLA pass")
             
     args = parser.parse_args()
-    args.rnd_seed=42    # for reproducibility of data split
-    args.cobyla_rhobeg=0.3 #  initial step size
-    args.input_scale=(0,np.pi) # for MinMaxScaler
-    args.test_fraction=0.6
+    args.cobyla_rhobeg=0.3 #  initial step size, smaller value prevents from too large rotations in Hilbert space
+    args.input_scale=(0,np.pi) # for MinMaxScaler, must match myFeatureMap()
+    args.test_fraction=0.6  # separates Iris samples, small training size is used to save shots on HW
     
     for arg in vars(args):  print( 'myArg:',arg, getattr(args, arg))   
     return args
 
 
 #...!...!....................
-# Function to encode labels as 2-bit binary
+# Function to encode integer labels shape (nSamp,) to be (nSamp,MB) to match reading nBit on QPU
 def M_binary_encode_labels(labels):
     nBit=int(np.ceil(np.log2(num_label)))
     nSamp=labels.shape[0]
-    MB=1<<nBit
-    lab_bin= np.full((nSamp,MB),-0.2) # reward and penalyze
-    
-    # Set the corresponding indices  value to 1    
+    MB=1<<nBit  # number of possible bitstrings
+    # reward and penalyze schem:
+    lab_bin= np.full((nSamp,MB),-1./MB) # blank penalty for any bistring
+    # Set the corresponding indices  value to 1   : this is the reward for good label
     np.put_along_axis(lab_bin, labels[:, None], 1, axis=1)
     return lab_bin
 
@@ -79,7 +80,7 @@ def get_iris_data():
     X = scaler.fit_transform(X)
 
     # Split into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.test_fraction, random_state=args.rnd_seed)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.test_fraction, random_state=args.rndSeed)
     
     print('Iris data split  train:',X_train.shape, ', test:',X_test.shape)
     return X_train, X_test, y_train, y_test ,num_label
@@ -87,7 +88,7 @@ def get_iris_data():
 #...!...!....................
 def myFeatureMap(X):
     nFeat=X.shape[1]
-    qc = QuantumCircuit(nFeat,name='angleMap')
+    qc = qk.QuantumCircuit(nFeat,name='angleMap')
     alphas = ParameterVector('alpha',length=nFeat)
     
     for i in range(nFeat):
@@ -116,7 +117,7 @@ def entangling_block(qc,cxDir=0,doCircle=False):
 
 #...!...!....................
 def myAnsatz(nFeat,nReps, barrier=True, final_rotation=True):
-    qc = QuantumCircuit(nFeat,name='ansatz_r%d'%nReps)
+    qc = qk.QuantumCircuit(nFeat,name='ansatz_r%d'%nReps)
     for ir in range(nReps):
         rotation_block(qc,ir, addRz=False)
         if barrier: qc.barrier()
@@ -208,9 +209,9 @@ def M_forward_pass(X, W):
     result = job.result()    
     weightCurrent=W.copy()
     
-    # compute density of labels for each circuit
-    labDens=[ None for ic in range(nCirc)]
-    assert num_label<=4  # for mxLabels
+    # compute probability density of measured labels for each circuit
+    labDens=[ None for ic in range(nCirc)] # lock memory
+    assert num_label<=4  # for mxLabels, tmp
     for ic in range(nCirc):
         counts = result.get_counts(ic)
         labDens[ic]=bin_label_decoder(counts,mxLabel=4)
@@ -218,10 +219,8 @@ def M_forward_pass(X, W):
     
 
 #...!...!....................
-# Binary cross-entropy loss function
 def binary_cross_entropy_loss(Y_pred, Y_true):    
     #print('BCEL:',Y_pred.shape, Y_true.shape)
-
     # Adding a small value to prevent log(0)    
     loss= -np.mean(Y_true * np.log(Y_pred + 1e-9) + (1 - Y_true) * np.log(1 - Y_pred + 1e-9))
     return loss
@@ -244,8 +243,7 @@ def M_evaluate( weightsOpt,txt=''):
     
     # Test the model
     y_pred_dens = M_forward_pass(X_test,weightsOpt)
-    y_pred_test = np.argmax(y_pred_dens, axis=1) # do majority wins
-    
+    y_pred_test = np.argmax(y_pred_dens, axis=1) # do: majority wins
 
     # Calculate accuracy
     accuracy = np.mean(y_pred_test == y_test)
@@ -255,7 +253,7 @@ def M_evaluate( weightsOpt,txt=''):
     conf_matrix = confusion_matrix(y_test,y_pred_test)
     print('confusion matrix, test samples: %d'%(X_test.shape[0]))
     for i,rec  in enumerate(conf_matrix):
-        print('true:%d  reco:%s'%(i,rec))
+        print('true:%d  reco: %s'%(i,rec))
     print()
     
 
@@ -271,10 +269,10 @@ def build_circuit(X,nReps):
     print('\nAnsatz'); print(qc2)
 
     print('nBits=',nBits)
-    circuit = QuantumCircuit(nFeat,nBits)
+    circuit = qk.QuantumCircuit(nFeat,nBits)
     circuit.append(qc1, range(nFeat))
     circuit.append(qc2, range(nFeat))
-    moff=2
+    moff=2  # decide which qubits to read, 0 is the worse choice ?!?
     circuit.measure(range(moff,moff+nBits),range(nBits))
     
     featNL=get_par_names(qc1,'features')
@@ -284,7 +282,7 @@ def build_circuit(X,nReps):
 
 
 #...!...!....................
-class trainMemory():
+class trainMemory():  # book keeping class
     def __init__(self):
         self.loss=[]      # Loss history
         self.bestIter=-1
@@ -299,7 +297,6 @@ class trainMemory():
             self.bestIter=iIter
             self.bestW=weightCurrent
         if iIter%5==0: print('iter=%d loss=%.3f'%(iIter,val))
-
         
     def report(self,txt):
         lastIter=self.num_iter()
@@ -310,9 +307,8 @@ class trainMemory():
             self.bestW=weightCurrent
             
     def num_iter(self): return  len(self.loss)
+#...!...!....................        
         
-        
-    
 
 #=================================
 #=================================
@@ -357,18 +353,20 @@ if __name__ == "__main__":
     
     
     if not args.doublePass :  exit(0)
-    
+
     # =============================================
     rhobeg= args.cobyla_rhobeg*2
     print('2nd COBYLA, rhobeg=%.2f ...'%rhobeg)
 
     # Reset loss history
-    loss_hist = []
+    myMem=trainMemory()
     result = minimize(fun=M_loss_function, 
                       x0=weightsOpt, 
                       args=(X_train, y_train_bin), 
                       method='COBYLA',                          
                       options={'maxiter': args.maxIter//2,'rhobeg': rhobeg})
 
-    weightsOpt=M_evaluate(txt='Pass2')
+    M_evaluate(weightsOpt,txt='Pass2-end')
+    M_evaluate(myMem.bestW,txt='Pass2-best')
+ 
    
