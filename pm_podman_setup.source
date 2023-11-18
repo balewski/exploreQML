@@ -1,12 +1,6 @@
 #!/bin/bash
 #  salloc -q interactive -C cpu -t 4:00:00 -A nstaff 
 
-# first load my Quantinuum credentials is to initialise a MemoryCredentialStorage with username and password both set
-
-#echo load my QuEra-AWS creds
-#source /Users/balewski/.ssh/quera_aws.credentials
-#env |grep QUERA_AWS  # activate to see the creds
-
 
 IMG=balewski/ubu22-qiskit-qml:p1
 CFSH=/global/cfs/cdirs/mpccc/balewski/

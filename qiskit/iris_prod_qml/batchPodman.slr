@@ -1,0 +1,41 @@
+#!/bin/bash 
+#SBATCH  -N 2  -C cpu --exclusive -A nstaff --ntasks-per-node=32
+#SBATCH  --time=30:00 -q debug
+#-SBATCH --time 12:00:00  -q regular
+#-SBATCH  --image=registry.nersc.gov/dseg/balewski/ubu22-tket-qtuum:v4b
+#SBATCH --output=out/%j.out
+# - - - E N D    O F    SLURM    C O M M A N D S
+#SBATCH  --licenses=scratch
+
+nprocspn=${SLURM_NTASKS_PER_NODE}
+#nprocspn=1  # special case for partial use of full node
+
+N=${SLURM_NNODES}
+G=$[ $N * $nprocspn ]
+jobId=${SLURM_JOBID}
+echo S:  G=$G  N=$N 
+
+# export OMP_NUM_THREADS=1 - makes no difference
+IMG=balewski/ubu22-qiskit-qml:p1
+echo use image $IMG
+CODE_DIR=`pwd`
+logN=iris_${SLURM_JOBID}
+outPath=$SCRATCH/iris/$logN
+echo outPath=$outPath
+mkdir -p $outPath
+cp Util_iris_binLab.py  iris_binLab.py   wrap_podman.sh batchPodman.slr $outPath
+
+CMD=" ./iris_binLab.py --expName 3cycleB  "
+#CMD=" ./iris_binLab.py --expName 2cycle1reset --ansatzReps 2  "
+#CMD=" ./iris_binLab.py --expName 2cycleB --ansatzReps 2  "
+cd $outPath
+
+( sleep 40; echo `hostname` ; date; free -g; top ibn1)&
+
+srun -n $G  ./wrap_podman.sh $IMG " $CMD "  $outPath
+
+echo S:done 
+date
+
+#Cancel all my jobs:
+#  squeue -u $USER -h | awk '{print $1}' | xargs scancel
