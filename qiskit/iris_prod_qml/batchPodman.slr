@@ -1,7 +1,8 @@
 #!/bin/bash 
-#SBATCH  -N 2  -C cpu --exclusive -A nstaff --ntasks-per-node=32
-#SBATCH  --time=30:00 -q debug
-#-SBATCH --time 12:00:00  -q regular
+#-SBATCH  -N 2  -C cpu --exclusive -A nstaff --ntasks-per-node=64
+#SBATCH  -N 16  -C cpu --exclusive -A nstaff --ntasks-per-node=2
+#-SBATCH  --time=28:00 -q debug
+#SBATCH --time 28:00  -q regular  -N 16
 #-SBATCH  --image=registry.nersc.gov/dseg/balewski/ubu22-tket-qtuum:v4b
 #SBATCH --output=out/%j.out
 # - - - E N D    O F    SLURM    C O M M A N D S
@@ -19,18 +20,20 @@ echo S:  G=$G  N=$N
 IMG=balewski/ubu22-qiskit-qml:p1
 echo use image $IMG
 CODE_DIR=`pwd`
-logN=iris_${SLURM_JOBID}
+logN=${SLURM_JOBID}
 outPath=$SCRATCH/iris/$logN
 echo outPath=$outPath
 mkdir -p $outPath
-cp Util_iris_binLab.py  iris_binLab.py   wrap_podman.sh batchPodman.slr $outPath
+cp Util_iris_binLab.py  iris_binLab.py  iris_biasLayer.py iris_sum2Layer.py  wrap_podman.sh batchPodman.slr $outPath
 
-CMD=" ./iris_binLab.py --expName 3cycleB  "
-#CMD=" ./iris_binLab.py --expName 2cycle1reset --ansatzReps 2  "
-#CMD=" ./iris_binLab.py --expName 2cycleB --ansatzReps 2  "
+#CMD=" ./iris_binLab.py --expName 3cycleB  "
+#CMD=" ./iris_biasLayer.py --ansatzReps 2 --expName 2cycStag "
+CMD=" ./iris_sum2Layer.py --ansatzReps 3 --maxIter 400 --numShots 4000 --expName 3cycPair "
+
+
 cd $outPath
 
-( sleep 40; echo `hostname` ; date; free -g; top ibn1)&
+( sleep 140; echo `hostname` ; date; free -g; top ibn1)&
 
 srun -n $G  ./wrap_podman.sh $IMG " $CMD "  $outPath
 

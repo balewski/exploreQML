@@ -11,12 +11,17 @@ def get_iris_data(args):
     X = iris.data
     y = iris.target
     num_label=3  # for Iris data
-    
+
     # Preprocess the data
     # Normalize data
     scaler = MinMaxScaler(feature_range=args.input_scale)
     X = scaler.fit_transform(X)
 
+    if args.reverseFeatures:
+        #X=X[::-1, :]
+        X=X[:,::-1]
+        if args.verb>0: print('get_iris_data: features order inversed')
+    
     # Split into training and test sets  
     X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=args.train_fraction,  random_state=args.rndSeed)
     
