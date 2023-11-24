@@ -89,7 +89,10 @@ def myFeatureMap(X):
     alphas = ParameterVector('al',length=nFeat)
 
     for i in range(nFeat):
-        qc.rx( alphas[i],i)
+        if i%2==0:
+            qc.rx( alphas[i],i)
+        else:
+            qc.ry( alphas[i],i)
     qc.barrier()
     return qc
 
@@ -99,7 +102,13 @@ def rotation_block(circ, ir, addRz=True):
     nq=circ.num_qubits
     nPar=2*nq-1 if addRz else nq
     thetas = ParameterVector('th%d'%ir, length=nPar)
-    for i in range(nq): circ.ry(thetas[i],i)
+    for i in range(nq):
+        #circ.ry(thetas[i],i)
+        if i%2==0:
+            circ.rx( thetas[i],i)
+        else:
+            circ.ry( thetas[i],i)
+
     if addRz:
         for i in range(nq-1):  circ.rz(thetas[i+nq],i)
 
@@ -119,8 +128,8 @@ def sum2brick():
     qc = qk.QuantumCircuit(2,1,name='sum2')
     qc.cx(1,0)
     qc.measure(1, 0)        
-    #with qc.if_test((qc.cregs[0], 1)): qc.h(1)
-    qc.h(1).c_if(qc.cregs[0], 1)
+    with qc.if_test((qc.cregs[0], 1)): qc.h(1)
+    #OLD qc.h(1).c_if(qc.cregs[0], 1)
     #qc.barrier()
     return qc
 
@@ -167,7 +176,7 @@ def build_circuit(X,nReps,verb=1):
     qc4=myAnsatz(nBits,1,ir0=nReps+1)  # added after sum2
     if verb>0: print('\nAnsatz2'); print(qc4)
 
-    keepL=[2,3]; dropL=[0,1]; measL=keepL  # 2 pairs
+    dropL=[0,2]; keepL=[1,3]; measL=keepL  # 2 pairs
     #keepL=[1,2]; dropL=[0,1] ; measL=[2,3] # stagger
     assert len(dropL)==nBits;  assert len(keepL)==nBits
     
@@ -178,7 +187,8 @@ def build_circuit(X,nReps,verb=1):
     circ.append(qc2, range(nFeat))
     for i in range(nBits): # add sum2-bricks
         qL=[dropL[i],keepL[i]]
-        circ.append(qc3, qL,[0])
+        #circ.append(qc3, qL,[0])
+        circ.compose(qc3, qL,[0], inplace=True)
         
     circ.barrier()
     circ.append(qc4, measL)
@@ -189,7 +199,7 @@ def build_circuit(X,nReps,verb=1):
         print(circuit_drawer(circ.decompose(), output='text',cregbundle=False))
     featNL=get_par_names(qc1,'features',verb)
     ansatzNL=get_par_names(qc2,'ansatz1',verb)+get_par_names(qc4,'ansatz2',verb)
-
+   
     return circ,featNL,ansatzNL
 
 
@@ -297,9 +307,12 @@ if __name__ == "__main__":
     num_feture=X_train.shape[1]
    
     qc,featN,weightN=build_circuit(X_train,args.ansatzReps,args.verb)
+
    
     num_weight=len(weightN)
-    if args.verb>0 : print('M: full compact, num_weight=%d'%num_weight); print(qc)    
+    if args.verb>0 :
+        print('M: full compact, num_weight=%d'%num_weight);
+        print(circuit_drawer(qc, output='text',cregbundle=False))
     
     backend = qk.Aer.get_backend('aer_simulator')
     qcT = qk.transpile(qc, backend=backend)
