@@ -120,7 +120,13 @@ def russianRulette(X,W,B,isLin=True):
                 y=(xwSum+pB)/m1
             else:
                 xw1Prod=np.prod(1-XpW)
-                y=1 - (1-pB)*xw1Prod            
+                y=1 - (1-pB)*xw1Prod  # multi-Bernoullie
+
+                if 0:  # combined OR+AND
+                    xw1ProdB=np.prod(XpW)
+                    y2=xw1ProdB  # AND 
+                    y=(y+y2)/2.
+                    #y=y2
             yV.append(y)
         Y.append(yV)
     Y=np.array(Y)
@@ -286,9 +292,9 @@ if __name__ == "__main__":
    
         # Get the best parameters found by Optuna
         optParamsD = study.best_params
-        weightsOpt= np.array([optParamsD[f'param_{i}'] for i in range(numWeight)])
-        print('Optima best params:',weightsOpt)
+        weightsOpt= np.array([optParamsD[f'param_{i}'] for i in range(numWeight)])       
         print_range(weightsOpt,'weightsOpt Optuna-%d'%m)
+        if m>0: print('Optima best params:',weightsOpt)
         # Test the model
         predict_iris(X_test,y_test,weightsOpt,text='phase1-%d-test'%m)
         if study.user_attrs.get('early_stopped', False):

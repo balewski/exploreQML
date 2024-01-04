@@ -28,6 +28,7 @@ done
     
 podman run -it \
        --volume $REPO_PATH/qiskit:/wrk \
+        --volume $REPO_PATH/python:/python \
        --volume $DATA_VAULT:/dataVault \
        --workdir /wrk \
        --user $(id -u):$(id -g) \

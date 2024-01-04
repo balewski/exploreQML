@@ -159,3 +159,5 @@ cython_debug/
 *.model
 *~
 out/
+output_plots
+
